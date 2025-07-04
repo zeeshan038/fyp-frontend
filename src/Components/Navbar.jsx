@@ -2,12 +2,18 @@ import React, { useEffect, useState } from 'react';
 import logo from '../assets/logo.png';
 import { HiOutlineBars3 } from 'react-icons/hi2';
 import { RxCross2 } from 'react-icons/rx';
-import { a } from 'framer-motion/client';
+import { Link, useLocation } from 'react-router-dom';
 
 const Navbar = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [activeItem, setActiveItem] = useState('HOME');
+  const location = useLocation();
+  const isSignupPage =
+    location.pathname === '/signup' ||
+    location.pathname === '/login' ||
+    location.pathname === '/forgot-password' ||
+    location.pathname === '/otp';
 
   const toggleMenu = () => {
     setMenuOpen(!menuOpen);
@@ -37,50 +43,64 @@ const Navbar = () => {
   return (
     <div className='relative'>
       <nav
-        className={`fixed z-50 w-full flex justify-between xl:px-60 px-7 duration-500 ease-in-out ${navbarBg}`}
+        className={`fixed z-50 w-full flex ${
+          isSignupPage ? 'justify-center' : 'justify-between'
+        } xl:px-60 px-7 duration-500 ease-in-out ${navbarBg}`}
       >
-        <div className='flex justify-center items-center'>
-          <img src={logo} alt='logo' className='w-25' />
-        </div>
-
-        {/* Hamburger */}
-        <button
-          onClick={toggleMenu}
-          className='md:hidden p-2 focus:outline-none'
-          aria-label='Toggle menu'
+        <Link
+          to='/'
+          className='flex justify-center gap-3 cursor-pointer items-center'
         >
-          {menuOpen ? (
-            <RxCross2 className='text-white text-4xl' />
-          ) : (
-            <HiOutlineBars3 className='text-white text-4xl border-1 border-gray-400 rounded w-12 h-10 mr-2' />
-          )}
-        </button>
+          <img src={logo} alt='logo' className='w-10 h-10' />
+          <h4 className='text-white text-2xl font-bold  uppercase'>Neutzee</h4>
+        </Link>
 
-        {/* Desktop Menu */}
-        <ul className='hidden md:flex gap-6 lg:gap-8 items-center text-white/50'>
-          {menuItems.map((item) => (
-            <li key={item} onClick={() => handleItemClick(item)}>
-              <a
-                href={`#${item.toLowerCase()}`}
-                className={`cursor-pointer hover:text-gray-300 transition pb-1 font-medium ${
-                  activeItem === item
-                    ? 'text-white md:border-b-2 border-white/50 hover:text-white'
-                    : 'text-white/50'
-                }`}
+        {/* Only show these elements if not on signup page */}
+        {!isSignupPage && (
+          <>
+            {/* Hamburger */}
+            <button
+              onClick={toggleMenu}
+              className='md:hidden p-2 focus:outline-none'
+              aria-label='Toggle menu'
+            >
+              {menuOpen ? (
+                <RxCross2 className='text-white text-4xl' />
+              ) : (
+                <HiOutlineBars3 className='text-white text-4xl border-1 border-gray-400 rounded w-12 h-10 mr-2' />
+              )}
+            </button>
+
+            {/* Desktop Menu */}
+            <ul className='hidden md:flex gap-6 lg:gap-8 items-center text-white/50'>
+              {menuItems.map((item) => (
+                <li key={item} onClick={() => handleItemClick(item)}>
+                  <Link
+                    to={'/'}
+                    className={`cursor-pointer hover:text-gray-300 transition pb-1 font-medium ${
+                      activeItem === item
+                        ? 'text-white md:border-b-2 border-white/50 hover:text-white'
+                        : 'text-white/50'
+                    }`}
+                  >
+                    {item}
+                  </Link>
+                </li>
+              ))}
+
+              <Link
+                to={'/login'}
+                className='border border-white rounded text-white px-6 py-1 my-1 hover:bg-white cursor-pointer hover:text-pink-700 text-[14px] duration-300'
               >
-                {item}
-              </a>
-            </li>
-          ))}
-
-          <button className='border border-white rounded text-white px-6 py-1 my-1 hover:bg-white cursor-pointer hover:text-pink-700 text-[14px] duration-300'>
-            <a href='#start'>START!</a>
-          </button>
-        </ul>
+                <p> START!</p>
+              </Link>
+            </ul>
+          </>
+        )}
       </nav>
 
       {/* Mobile Menu */}
-      {menuOpen && (
+      {menuOpen && !isSignupPage && (
         <div className='fixed right-0 left-0 z-40 bg-[linear-gradient(135deg,_rgba(60,_8,_118,_1)_0%,_rgba(250,_0,_118,_1)_100%)] pt-24'>
           <ul className='flex flex-col justify-center items-center px-7 py-4 gap-4'>
             {menuItems.map((item) => (
@@ -96,12 +116,13 @@ const Navbar = () => {
                 </a>
               </li>
             ))}
-            <button
+            <Link
+              to={'/signup'}
               onClick={() => handleItemClick(start)}
               className='border border-white rounded text-white px-8 py-2 hover:bg-white cursor-pointer hover:text-pink-700 text-[17px] w-fit mt-4'
             >
-              <a href='#start'>START</a>
-            </button>
+              <a>START</a>
+            </Link>
           </ul>
         </div>
       )}
