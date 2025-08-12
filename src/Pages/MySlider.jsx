@@ -1,46 +1,34 @@
 import React from 'react';
-import 'slick-carousel/slick/slick.css';
-import 'slick-carousel/slick/slick-theme.css';
-import Slider from 'react-slick';
-import img1 from '../assets/image-1.jpg';
-import img2 from '../assets/image-2.jpg';
-import img3 from '../assets/image-3.jpg';
-import img4 from '../assets/image-4.jpg';
-import img5 from '../assets/image-5.jpg';
+import CardCarousel from '../Components/ui/CardCarousel';
+
+import card1 from '../assets/image-1.jpg';
+import card2 from '../assets/image-2.jpg';
+import card3 from '../assets/image-3.jpg';
+import card4 from '../assets/image-4.jpg';
+import card5 from '../assets/image-5.jpg';
 
 const MySlider = () => {
-  const settings = {
-    dots: true,
-    infinite: true,
-    arrows: true,
-    autoplaySpeed: 2000,
-    autoplay: true,
-    speed: 400,
-    slidesToShow: 3,
-    slidesToScroll: 1,
-    arrows: true,
-    autoplay: true,
-  };
-
-  const images = [img1, img2, img3, img4, img5];
+  const images = [
+    { src: card1, alt: 'Image 1' },
+    { src: card2, alt: 'Image 2' },
+    { src: card3, alt: 'Image 3' },
+    { src: card4, alt: 'Image 4' },
+    { src: card5, alt: 'Image 5' },
+    { src: card1, alt: 'Image 1' },
+    { src: card2, alt: 'Image 2' },
+    { src: card3, alt: 'Image 3' },
+    { src: card4, alt: 'Image 4' },
+    { src: card5, alt: 'Image 5' },
+  ];
 
   return (
-    <div style={{ width: '100%', maxWidth: '1000px', margin: '0 auto' }}>
-      <Slider {...settings}>
-        {images.map((item, id) => (
-          <div key={id} style={{ padding: '10px' }} className='flex gap-20'>
-            <img
-              src={item}
-              alt={`Slide ${id + 1}`}
-              style={{
-                width: '300px',
-                height: 'auto',
-                objectFit: 'cover',
-              }}
-            />
-          </div>
-        ))}
-      </Slider>
+    <div className='pt-40'>
+      <CardCarousel
+        images={images}
+        autoplayDelay={2000}
+        showPagination={true}
+        showNavigation={true}
+      />
     </div>
   );
 };

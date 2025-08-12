@@ -45,13 +45,13 @@ const Navbar = () => {
       <nav
         className={`fixed z-50 w-full flex ${
           isSignupPage ? 'justify-center' : 'justify-between'
-        } xl:px-60 px-7 duration-500 ease-in-out ${navbarBg}`}
+        } xl:px-60 py-2 px-7 duration-500 ease-in-out ${navbarBg}`}
       >
         <Link
           to='/'
           className='flex justify-center gap-3 cursor-pointer items-center'
         >
-          <img src={logo} alt='logo' className='w-10 h-10' />
+          <img src={logo} alt='logo' className='w-10 h-9' />
           <h4 className='text-white text-2xl font-bold  uppercase'>Neutzee</h4>
         </Link>
 

@@ -8,8 +8,7 @@ import camera from '../assets/camera.png';
 import analyze from '../assets/analyze.png';
 import result from '../assets/result.png';
 import Start from './Start';
-import MySlider from './MySlider';
-import Footer from '../Components/Footer';
+import CardCarousel from './MySlider';
 
 const Home = () => {
   const [activeImage, setActiveImage] = useState(camera);
@@ -244,12 +243,11 @@ const Home = () => {
         </div>
       </section>
       <section className='py-30'>
-        <MySlider />
+        <CardCarousel />
       </section>
       <section className='bg-[linear-gradient(135deg,_rgba(60,_8,_118,_0.8)_0%,_rgba(250,_0,_118,_0.8)_100%)]'>
         <Start />
       </section>
-      <Footer />
     </div>
   );
 };
