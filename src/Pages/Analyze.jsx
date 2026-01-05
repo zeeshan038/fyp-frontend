@@ -394,39 +394,63 @@ const Analyze = () => {
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                           <Text strong>Confidence Level:</Text>
-                          <Text type="success">{result.confidence}</Text>
+                          <Text strong style={{ color: getConfidenceColor(result.confidence) }}>
+                            {typeof result.confidence === 'number' ? `${(result.confidence * 100).toFixed(1)}%` : result.confidence}
+                          </Text>
                         </div>
                       </div>
 
                       <div style={{ marginBottom: '24px' }}>
                         <Text strong>Advice:</Text>
-                        <p>{result.advice}</p>
+                        <p style={{ marginTop: '8px', color: 'rgba(0,0,0,0.85)' }}>{result.advice}</p>
                       </div>
 
                       <div style={{ marginBottom: '24px' }}>
                         <Text strong>Urgency:</Text>
-                        <Tag color={result.urgency === 'routine' ? 'blue' : 'red'} style={{ marginLeft: '8px' }}>
+                        <Tag color={getUrgencyColor(result.urgency)} style={{ marginLeft: '8px', padding: '0 12px' }}>
                           {result.urgency?.toUpperCase()}
                         </Tag>
                       </div>
 
                       {result.medications && (
-                        <div>
-                          <Text strong>Medications:</Text>
-                          <div style={{ marginTop: '8px' }}>
-                            <Text italic>OTC:</Text>
-                            <ul style={{ paddingLeft: '20px' }}>
-                              {result.medications.otc?.map((item, index) => (
-                                <li key={index}>{item}</li>
-                              ))}
-                            </ul>
-                            <Text italic>Prescription:</Text>
-                            <ul style={{ paddingLeft: '20px' }}>
-                              {result.medications.prescription?.map((item, index) => (
-                                <li key={index}>{item}</li>
-                              ))}
-                            </ul>
-                            <Text type="warning" size="small">{result.medications.caution}</Text>
+                        <div style={{
+                          marginTop: '16px',
+                          padding: '16px',
+                          background: '#f9f9f9',
+                          borderRadius: '8px',
+                          borderLeft: `4px solid ${result.urgency === 'emergency' ? '#ff4d4f' :
+                              result.urgency === 'soon' ? '#faad14' : '#1890ff'
+                            }`
+                        }}>
+                          <Text strong>Medical Recommendation:</Text>
+                          <div style={{ marginTop: '12px' }}>
+                            {result.medications.otc?.length > 0 && (
+                              <>
+                                <Text italic strong>OTC (Over-the-Counter):</Text>
+                                <ul style={{ paddingLeft: '20px', marginBottom: '8px' }}>
+                                  {result.medications.otc.map((item, index) => (
+                                    <li key={index}>{item}</li>
+                                  ))}
+                                </ul>
+                              </>
+                            )}
+                            {result.medications.prescription?.length > 0 && (
+                              <>
+                                <Text italic strong>Prescription Needed:</Text>
+                                <ul style={{ paddingLeft: '20px', marginBottom: '8px' }}>
+                                  {result.medications.prescription.map((item, index) => (
+                                    <li key={index}>{item}</li>
+                                  ))}
+                                </ul>
+                              </>
+                            )}
+                            {result.medications.caution && (
+                              <div style={{ marginTop: '8px', padding: '8px', background: '#fffbe6', border: '1px solid #ffe58f', borderRadius: '4px' }}>
+                                <Text type="warning" style={{ fontSize: '13px' }}>
+                                  <strong>⚠️ CAUTION:</strong> {result.medications.caution}
+                                </Text>
+                              </div>
+                            )}
                           </div>
                         </div>
                       )}
@@ -514,9 +538,32 @@ const Analyze = () => {
                     dataIndex: 'urgency',
                     key: 'urgency',
                     render: (urgency) => (
-                      <Tag color={urgency === 'routine' ? 'blue' : 'red'}>
+                      <Tag color={getUrgencyColor(urgency)}>
                         {urgency?.toUpperCase()}
                       </Tag>
+                    ),
+                  },
+                  {
+                    title: 'Actions',
+                    key: 'actions',
+                    render: (_, record) => (
+                      <Space size="middle">
+                        <Button
+                          type="text"
+                          icon={<EyeOutlined />}
+                          onClick={() => handlePreview(record)}
+                        >
+                          View
+                        </Button>
+                        <Button
+                          type="text"
+                          danger
+                          icon={<DeleteOutlined />}
+                          onClick={() => handleDelete(record)}
+                        >
+                          Delete
+                        </Button>
+                      </Space>
                     ),
                   },
 
@@ -624,8 +671,20 @@ const Analyze = () => {
       'Psoriasis': 'orange',
       'Melanoma': 'red',
       'Rosacea': 'pink',
+      'Tinea Corporis (Ringworm)': 'cyan',
+      'Ringworm': 'cyan',
     };
     return colors[condition] || 'default';
+  };
+
+  const getUrgencyColor = (urgency) => {
+    switch (urgency?.toLowerCase()) {
+      case 'routine': return 'blue';
+      case 'soon': return 'gold';
+      case 'urgent': return 'volcano';
+      case 'emergency': return 'red';
+      default: return 'default';
+    }
   };
 
   const getConfidenceColor = (confidence) => {
@@ -660,7 +719,7 @@ const Analyze = () => {
           </div>
 
           <p><strong>Date:</strong> {record.date}</p>
-          <p><strong>Urgency:</strong> <Tag color={record.urgency === 'routine' ? 'blue' : 'red'}>{record.urgency?.toUpperCase()}</Tag></p>
+          <p><strong>Urgency:</strong> <Tag color={getUrgencyColor(record.urgency)}>{record.urgency?.toUpperCase()}</Tag></p>
 
           <div style={{ marginTop: '16px' }}>
             <strong>Advice:</strong>
