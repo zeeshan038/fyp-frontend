@@ -1,15 +1,15 @@
 import React, { useState } from 'react';
 import { FaCheckCircle, FaEye, FaEyeSlash } from 'react-icons/fa';
-import { FcGoogle } from 'react-icons/fc'; // Import Google icon
+import { FcGoogle } from 'react-icons/fc'; 
 import { Link, useNavigate } from 'react-router-dom';
-import { useSignupMutation } from '../../features/auth/authApi';
 import { toast } from 'react-toastify';
 import { VscEye, VscEyeClosed } from 'react-icons/vsc';
+import { BASE_URL } from '../../constant';
 
 const Signup = () => {
-  const [signup, { isLoading }] = useSignupMutation('');
   const navigate = useNavigate();
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -26,38 +26,88 @@ const Signup = () => {
     });
   };
 
+  const validateForm = () => {
+    // Name validation
+    if (!formData.name.trim()) {
+      setError('Name is required.');
+      return false;
+    }
+
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!formData.email.trim()) {
+      setError('Email is required.');
+      return false;
+    }
+    if (!emailRegex.test(formData.email)) {
+      setError('Please provide a valid email address.');
+      return false;
+    }
+
+    // Password validation
+    if (!formData.password) {
+      setError('Password is required.');
+      return false;
+    }
+    if (formData.password.length < 6) {
+      setError('Password must be at least 6 characters long.');
+      return false;
+    }
+    if (formData.password.length > 200) {
+      setError('Password cannot exceed 200 characters.');
+      return false;
+    }
+
+    // Confirm password validation
+    if (!formData.confirmPassword) {
+      setError('Confirm password is required.');
+      return false;
+    }
+    if (formData.password !== formData.confirmPassword) {
+      setError('Passwords do not match.');
+      return false;
+    }
+
+    return true;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
 
-    if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
-      return;
-    }
-    if (!formData.name) {
-      setError('Name are required');
+    if (!validateForm()) {
       return;
     }
 
-    if (!formData.email || !formData.password) {
-      setError('Email and password are required');
-      return;
-    }
-
-    console.log('Submitting:', formData);
+    setIsLoading(true);
 
     try {
-      const res = await signup(formData).unwrap();
-      console.log('API Response:', res);
+      const response = await fetch(`${BASE_URL}/api/user/signup`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          password: formData.password,
+          confirmPassword: formData.confirmPassword,
+        }),
+      });
 
-      if (res.error) {
-        setError(res.msg);
-      } else {
+      const data = await response.json();
+
+      if (response.ok) {
+        toast.success(data.msg || 'Signup successful!');
         navigate('/login');
-        toast.success(res.msg);
+      } else {
+        setError(data.msg || 'Signup failed');
       }
     } catch (err) {
-      setError(err.data?.msg || 'Signup failed');
+      setError('Network error. Please try again.');
+      console.error('Signup error:', err);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -151,7 +201,7 @@ const Signup = () => {
             >
               {isLoading ? 'Signing up...' : 'Sign Up'}
             </button>
-            <div className='flex items-center my-4'>
+            {/* <div className='flex items-center my-4'>
               <div className='flex-grow h-px bg-gray-300'></div>
               <p className='mx-4 text-gray-500 font-medium'>OR</p>
               <div className='flex-grow h-px bg-gray-300'></div>
@@ -164,7 +214,7 @@ const Signup = () => {
               <span className='text-gray-700 font-medium'>
                 Sign up with Google
               </span>
-            </button>
+            </button> */}
             <div>
               <p className='mt-4 text-center text-gray-600'>
                 Already have an account?{' '}

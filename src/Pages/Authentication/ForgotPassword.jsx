@@ -1,35 +1,59 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useForgotPasswordMutation } from '../../features/auth/authApi';
 import { toast } from 'react-toastify';
+import { BASE_URL } from '../../constant';
 
 const ForgotPassword = () => {
-  const [forgotPassword, { isLoading }] = useForgotPasswordMutation();
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState('');
   const navigate = useNavigate();
+
+  const validateEmail = () => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email.trim()) {
+      setError('Email is required');
+      return false;
+    }
+    if (!emailRegex.test(email)) {
+      setError('Invalid email address');
+      return false;
+    }
+    return true;
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
 
-    if (!email) {
-      setError('Email is required');
+    if (!validateEmail()) {
       return;
     }
 
-    try {
-      const res = await forgotPassword({ email }).unwrap();
-      console.log('API Response:', res);
+    setIsLoading(true);
 
-      if (res.error) {
-        setError(res.msg);
+    try {
+      const response = await fetch(`${BASE_URL}/api/user/forgot-password`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        navigate('/otp', { state: { email: email } });
+        toast.success(data.msg || 'OTP sent to your email');
       } else {
-        navigate('/otp' , { state: { email: email } });
-        toast.success(res.msg);
+        setError(data.msg || 'Something went wrong');
       }
     } catch (err) {
-      setError(err.data?.msg || 'Something went wrong');
+      setError('Network error. Please try again.');
+      console.error('Forgot password error:', err);
+    } finally {
+      setIsLoading(false);
     }
   };
 

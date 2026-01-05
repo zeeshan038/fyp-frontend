@@ -2,13 +2,16 @@ import React, { useEffect, useState } from 'react';
 import logo from '../assets/logo.png';
 import { HiOutlineBars3 } from 'react-icons/hi2';
 import { RxCross2 } from 'react-icons/rx';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 
 const Navbar = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [activeItem, setActiveItem] = useState('HOME');
   const location = useLocation();
+  const navigate = useNavigate();
+  const token = localStorage.getItem('token');
+
   const isSignupPage =
     location.pathname === '/signup' ||
     location.pathname === '/login' ||
@@ -22,6 +25,11 @@ const Navbar = () => {
   const handleItemClick = (item) => {
     setActiveItem(item);
     setMenuOpen(false);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    navigate('/login');
   };
 
   const navbarBg =
@@ -43,9 +51,8 @@ const Navbar = () => {
   return (
     <div className='relative'>
       <nav
-        className={`fixed z-50 w-full flex ${
-          isSignupPage ? 'justify-center' : 'justify-between'
-        } xl:px-60 py-2 px-7 duration-500 ease-in-out ${navbarBg}`}
+        className={`fixed z-50 w-full flex ${isSignupPage ? 'justify-center' : 'justify-between'
+          } xl:px-60 py-2 px-7 duration-500 ease-in-out ${navbarBg}`}
       >
         <Link
           to='/'
@@ -77,23 +84,31 @@ const Navbar = () => {
                 <li key={item} onClick={() => handleItemClick(item)}>
                   <Link
                     to={'/'}
-                    className={`cursor-pointer hover:text-gray-300 transition pb-1 font-medium ${
-                      activeItem === item
-                        ? 'text-white md:border-b-2 border-white/50 hover:text-white'
-                        : 'text-white/50'
-                    }`}
+                    className={`cursor-pointer hover:text-gray-300 transition pb-1 font-medium ${activeItem === item
+                      ? 'text-white md:border-b-2 border-white/50 hover:text-white'
+                      : 'text-white/50'
+                      }`}
                   >
                     {item}
                   </Link>
                 </li>
               ))}
 
-              <Link
-                to={'/login'}
-                className='border border-white rounded text-white px-6 py-1 my-1 hover:bg-white cursor-pointer hover:text-pink-700 text-[14px] duration-300'
-              >
-                <p> START!</p>
-              </Link>
+              {token ? (
+                <button
+                  onClick={handleLogout}
+                  className='border border-white rounded text-white px-6 py-1 my-1 hover:bg-white cursor-pointer hover:text-pink-700 text-[14px] duration-300'
+                >
+                  LOGOUT
+                </button>
+              ) : (
+                <Link
+                  to={'/login'}
+                  className='border border-white rounded text-white px-6 py-1 my-1 hover:bg-white cursor-pointer hover:text-pink-700 text-[14px] duration-300'
+                >
+                  START!
+                </Link>
+              )}
             </ul>
           </>
         )}
@@ -107,9 +122,8 @@ const Navbar = () => {
               <li key={item}>
                 <a
                   href={`#${item.toLowerCase()}`}
-                  className={`text-xl transition ${
-                    activeItem === item ? 'text-white' : 'text-white/50'
-                  } hover:text-gray-300`}
+                  className={`text-xl transition ${activeItem === item ? 'text-white' : 'text-white/50'
+                    } hover:text-gray-300`}
                   onClick={() => handleItemClick(item)}
                 >
                   {item}
@@ -118,10 +132,9 @@ const Navbar = () => {
             ))}
             <Link
               to={'/signup'}
-              onClick={() => handleItemClick(start)}
               className='border border-white rounded text-white px-8 py-2 hover:bg-white cursor-pointer hover:text-pink-700 text-[17px] w-fit mt-4'
             >
-              <a>START</a>
+              START
             </Link>
           </ul>
         </div>

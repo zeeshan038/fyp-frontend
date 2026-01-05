@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import OtpInput from 'react-otp-input';
-import { useVerifyOTPMutation } from '../../features/auth/authApi';
+import { toast } from 'react-toastify';
+import { BASE_URL } from '../../constant';
 
 const Otp = () => {
   const [otp, setOtp] = useState('');
@@ -9,7 +10,7 @@ const Otp = () => {
   const [showResend, setShowResend] = useState(false);
   const timerRef = useRef(null);
   const [error, setError] = useState('');
-  const [verifyOTP, { isLoading }] = useVerifyOTPMutation();
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const email = location.state?.email;
@@ -18,24 +19,41 @@ const Otp = () => {
     e.preventDefault();
     setError('');
 
-    if (!otp) {
-      setError('OTP is required');
+    if (!otp || otp.length !== 4) {
+      setError('Please enter a valid 4-digit OTP');
       return;
     }
 
-    try {
-      const res = await verifyOTP({ otp, email }).unwrap();
-      console.log('API Response:', res);
+    if (!email) {
+      setError('Email is missing. Please go back and try again.');
+      return;
+    }
 
-      if (res.error) {
-        setError(res.msg);
+    setIsLoading(true);
+
+    try {
+      const response = await fetch(`${BASE_URL}/api/user/verify-token`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, otp }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast.success(data.msg || 'Account verified successfully!');
+        navigate('/reset-password', { state: { email: email } });
       } else {
-        navigate('/login', { state: { email: email } });
+        setError(data.msg || 'Invalid or expired OTP');
       }
     } catch (err) {
-      setError(err.data?.msg || 'Something went wrong');
+      setError('Network error. Please try again.');
+      console.error('OTP verification error:', err);
+    } finally {
+      setIsLoading(false);
     }
-    console.log('Submitting:', otp);
   };
 
   useEffect(() => {
@@ -61,11 +79,35 @@ const Otp = () => {
     }, 1000);
   };
 
-  const handleResendClick = () => {
-    setSeconds(15);
-    setShowResend(false);
-    startTimer();
-    console.log('Resending OTP...');
+  const handleResendClick = async () => {
+    if (!email) {
+      setError('Email is missing. Please go back and try again.');
+      return;
+    }
+
+    try {
+      const response = await fetch(`${BASE_URL}/api/user/forgot-password`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast.success('OTP resent to your email');
+        setSeconds(15);
+        setShowResend(false);
+        startTimer();
+      } else {
+        setError(data.msg || 'Failed to resend OTP');
+      }
+    } catch (err) {
+      setError('Network error. Please try again.');
+      console.error('Resend OTP error:', err);
+    }
   };
 
   const handleOtpChange = (value) => {
