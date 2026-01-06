@@ -48,6 +48,22 @@ const Navbar = () => {
 
   const menuItems = ['HOME', 'FEATURE', 'FAQ', 'GALLERY', 'CONTACT'];
 
+  const scrollToSection = (sectionId) => {
+    setMenuOpen(false);
+    setActiveItem(sectionId.toUpperCase());
+
+    const id = sectionId.toLowerCase();
+
+    if (location.pathname === '/') {
+      const element = document.getElementById(id);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth' });
+      }
+    } else {
+      navigate(`/#${id}`);
+    }
+  };
+
   return (
     <div className='relative'>
       <nav
@@ -56,6 +72,7 @@ const Navbar = () => {
       >
         <Link
           to='/'
+          onClick={() => scrollToSection('home')}
           className='flex justify-center gap-3 cursor-pointer items-center'
         >
           <img src={logo} alt='logo' className='w-10 h-9' />
@@ -81,16 +98,15 @@ const Navbar = () => {
             {/* Desktop Menu */}
             <ul className='hidden md:flex gap-6 lg:gap-8 items-center text-white/50'>
               {menuItems.map((item) => (
-                <li key={item} onClick={() => handleItemClick(item)}>
-                  <Link
-                    to={'/'}
+                <li key={item} onClick={() => scrollToSection(item)}>
+                  <span
                     className={`cursor-pointer hover:text-gray-300 transition pb-1 font-medium ${activeItem === item
                       ? 'text-white md:border-b-2 border-white/50 hover:text-white'
                       : 'text-white/50'
                       }`}
                   >
                     {item}
-                  </Link>
+                  </span>
                 </li>
               ))}
 
@@ -120,14 +136,13 @@ const Navbar = () => {
           <ul className='flex flex-col justify-center items-center px-7 py-4 gap-4'>
             {menuItems.map((item) => (
               <li key={item}>
-                <a
-                  href={`#${item.toLowerCase()}`}
-                  className={`text-xl transition ${activeItem === item ? 'text-white' : 'text-white/50'
+                <button
+                  onClick={() => scrollToSection(item)}
+                  className={`text-xl transition w-full ${activeItem === item ? 'text-white' : 'text-white/50'
                     } hover:text-gray-300`}
-                  onClick={() => handleItemClick(item)}
                 >
                   {item}
-                </a>
+                </button>
               </li>
             ))}
             <Link

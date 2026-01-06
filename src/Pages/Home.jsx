@@ -9,11 +9,25 @@ import analyze from '../assets/analyze.png';
 import result from '../assets/result.png';
 import Start from './Start';
 import CardCarousel from './MySlider';
+import { Link } from 'react-router-dom';
 
 const Home = () => {
   const [activeImage, setActiveImage] = useState(camera);
   const [activeBox, setActiveBox] = useState(1);
   const [hoveredBox, setHoveredBox] = useState(null);
+
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (hash) {
+      const id = hash.replace('#', '');
+      const element = document.getElementById(id);
+      if (element) {
+        setTimeout(() => {
+          element.scrollIntoView({ behavior: 'smooth' });
+        }, 100);
+      }
+    }
+  }, []);
 
   return (
     <div className=''>
@@ -28,9 +42,9 @@ const Home = () => {
               diseases in three simple steps. Fast and free!
             </p>
             <div className='flex gap-4 mt-10 justify-center md:justify-start'>
-              <button className='border-2 border-white bg-white text-pink-800 w-[37%] py-2 lg:w-[30%] md:w-[37%] lg:py-3.5 md:py-3 font-medium rounded-lg'>
+              <Link to={'/login'} className=' flex items-center justify-center border-2 border-white bg-white text-pink-800 w-[37%] py-2 lg:w-[30%] md:w-[37%] lg:py-3.5 md:py-3 font-medium rounded-lg'>
                 START
-              </button>
+              </Link>
               <button className='border-2 border-white w-[37%] py-2 lg:w-[30%] md:w-[37%] text-white lg:py-3.5 md:py-3 font-medium rounded-lg'>
                 LEARN MORE
               </button>
@@ -114,18 +128,16 @@ const Home = () => {
             }}
           >
             <div
-              className={`lg:px-9 lg:py-6.5 px-8 py-5 rounded-full transition-colors cursor-pointer ${
-                activeBox === 1 || hoveredBox === 1
-                  ? 'bg-gradient-to-br from-[#fd374e] to-[#e54590]'
-                  : 'bg-white'
-              }`}
+              className={`lg:px-9 lg:py-6.5 px-8 py-5 rounded-full transition-colors cursor-pointer ${activeBox === 1 || hoveredBox === 1
+                ? 'bg-gradient-to-br from-[#fd374e] to-[#e54590]'
+                : 'bg-white'
+                }`}
             >
               <p
-                className={`lg:text-5xl text-4xl ${
-                  activeBox === 1 || hoveredBox === 1
-                    ? 'text-white'
-                    : 'text-pink-700'
-                }`}
+                className={`lg:text-5xl text-4xl ${activeBox === 1 || hoveredBox === 1
+                  ? 'text-white'
+                  : 'text-pink-700'
+                  }`}
               >
                 1
               </p>
@@ -161,18 +173,16 @@ const Home = () => {
             }}
           >
             <div
-              className={`lg:px-9 lg:py-6.5 px-8 py-5 rounded-full transition-colors cursor-pointer ${
-                activeBox === 2 || hoveredBox === 2
-                  ? 'bg-gradient-to-br from-[#fd374e] to-[#e54590]'
-                  : 'bg-white'
-              }`}
+              className={`lg:px-9 lg:py-6.5 px-8 py-5 rounded-full transition-colors cursor-pointer ${activeBox === 2 || hoveredBox === 2
+                ? 'bg-gradient-to-br from-[#fd374e] to-[#e54590]'
+                : 'bg-white'
+                }`}
             >
               <p
-                className={`text-4xl lg:text-5xl ${
-                  activeBox === 2 || hoveredBox === 2
-                    ? 'text-white'
-                    : 'text-pink-700'
-                }`}
+                className={`text-4xl lg:text-5xl ${activeBox === 2 || hoveredBox === 2
+                  ? 'text-white'
+                  : 'text-pink-700'
+                  }`}
               >
                 2
               </p>
@@ -206,18 +216,16 @@ const Home = () => {
             }}
           >
             <div
-              className={`lg:px-9 lg:py-6.5 px-8 py-5 rounded-full transition-colors cursor-pointer ${
-                activeBox === 3 || hoveredBox === 3
-                  ? 'bg-gradient-to-br from-[#fd374e] to-[#e54590]'
-                  : 'bg-white'
-              }`}
+              className={`lg:px-9 lg:py-6.5 px-8 py-5 rounded-full transition-colors cursor-pointer ${activeBox === 3 || hoveredBox === 3
+                ? 'bg-gradient-to-br from-[#fd374e] to-[#e54590]'
+                : 'bg-white'
+                }`}
             >
               <p
-                className={`text-4xl lg:text-5xl ${
-                  activeBox === 3 || hoveredBox === 3
-                    ? 'text-white'
-                    : 'text-pink-700'
-                }`}
+                className={`text-4xl lg:text-5xl ${activeBox === 3 || hoveredBox === 3
+                  ? 'text-white'
+                  : 'text-pink-700'
+                  }`}
               >
                 3
               </p>
@@ -242,10 +250,28 @@ const Home = () => {
           />
         </div>
       </section>
-      <section className='py-30'>
+      <section id='gallery' className='py-30'>
         <CardCarousel />
       </section>
-      <section className='bg-[linear-gradient(135deg,_rgba(60,_8,_118,_0.8)_0%,_rgba(250,_0,_118,_0.8)_100%)]'>
+      <section id='faq' className='bg-[#faf6fb] py-20 px-5 xl:px-60 lg:px-10 fontClass'>
+        <div className='text-center mb-16'>
+          <h2 className='text-3xl lg:text-4xl text-purple-900 font-bold mb-4'>Frequently Asked Questions</h2>
+          <div className='w-20 h-1 bg-gradient-to-r from-purple-800 to-pink-500 mx-auto'></div>
+        </div>
+        <div className='max-w-4xl mx-auto space-y-6'>
+          {[
+            { q: "How does it work?", a: "Simply upload a clear photo of your skin condition, and our AI will analyze it to provide a preliminary assessment." },
+            { q: "Is it a substitute for a doctor?", a: "No, this tool provides information for educational purposes only and is not a clinical diagnosis. Always consult a professional." },
+            { q: "Is my data private?", a: "Yes, we prioritize your privacy and ensure all uploaded images are handled securely." }
+          ].map((item, index) => (
+            <div key={index} className='bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-300'>
+              <h3 className='text-xl text-purple-900 font-semibold mb-2'>{item.q}</h3>
+              <p className='text-gray-600 leading-relaxed font-sans'>{item.a}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+      <section id='contact' className='bg-[linear-gradient(135deg,_rgba(60,_8,_118,_0.8)_0%,_rgba(250,_0,_118,_0.8)_100%)]'>
         <Start />
       </section>
     </div>

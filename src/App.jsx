@@ -7,11 +7,11 @@ import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import ResetPassword from './Pages/Authentication/ResetPassword';
 import { Layout, Menu } from 'antd';
-import { 
-  DashboardOutlined, 
-  UploadOutlined, 
-  HistoryOutlined, 
-  TeamOutlined 
+import {
+  DashboardOutlined,
+  UploadOutlined,
+  HistoryOutlined,
+  TeamOutlined
 } from '@ant-design/icons';
 
 // Lazy-loaded pages
@@ -36,13 +36,12 @@ const App = () => {
     '/otp',
     '/reset-password'
   ].includes(location.pathname);
-  
+
   // Check if sidebar should be shown
   const showSidebar = [
     '/analyze',
     '/upload',
-    '/history',
-    '/patients'
+    '/history'
   ].some(path => location.pathname.startsWith(path));
 
   return (
@@ -56,21 +55,21 @@ const App = () => {
           </div>
         }
       >
-              <Routes>
-                <Route path='/' element={<Home />} />
-                <Route path='/signup' element={<Signup />} />
-                <Route path='/login' element={<Login />} />
-                <Route path='/forgot-password' element={<ForgotPassword />} />
-                <Route path='/otp' element={<Otp />} />
-                <Route path='/upload' element={<Analyze initialView="upload" />} />
-                <Route path='/history' element={<Analyze initialView="history" />} />
-                <Route path='/reset-password' element={<ResetPassword />} />
-                <Route path='/analyze' element={<Analyze initialView="dashboard" />} />
-              </Routes>
-       
+        <Routes>
+          <Route path='/' element={<Home />} />
+          <Route path='/signup' element={<Signup />} />
+          <Route path='/login' element={<Login />} />
+          <Route path='/forgot-password' element={<ForgotPassword />} />
+          <Route path='/otp' element={<Otp />} />
+          <Route path='/upload' element={<Analyze initialView="upload" />} />
+          <Route path='/history' element={<Analyze initialView="history" />} />
+          <Route path='/reset-password' element={<ResetPassword />} />
+          <Route path='/analyze' element={<Analyze initialView="dashboard" />} />
+        </Routes>
+
       </Suspense>
 
-      {!hideNavbar && <Footer />}
+      {!hideNavbar && !showSidebar && <Footer />}
 
       <ToastContainer
         position='top-right'

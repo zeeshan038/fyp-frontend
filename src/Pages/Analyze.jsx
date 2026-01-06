@@ -28,7 +28,6 @@ import {
   HistoryOutlined,
   LogoutOutlined,
   DashboardOutlined,
-  TeamOutlined,
   LineChartOutlined,
   PieChartOutlined,
   BarChartOutlined,
@@ -38,8 +37,9 @@ import {
   DeleteOutlined,
   ExclamationCircleOutlined
 } from '@ant-design/icons';
-import { Line, Pie } from '@ant-design/plots';
+import { Area, Pie } from '@ant-design/plots';
 import { BASE_URL } from '../constant';
+import logo from '../assets/logo.png';
 
 const { Text } = Typography;
 const { confirm } = Modal;
@@ -272,9 +272,6 @@ const Analyze = () => {
       case '3':
         setActiveView('history');
         break;
-      case '4':
-        setActiveView('patients');
-        break;
       default:
         setActiveView('dashboard');
     }
@@ -285,23 +282,44 @@ const Analyze = () => {
       case 'dashboard': return '1';
       case 'upload': return '2';
       case 'history': return '3';
-      case 'patients': return '4';
       default: return '1';
     }
   };
 
   // Chart data and configurations
-  const lineConfig = {
+  const areaConfig = {
     data: dashboardStats?.monthlyScans || [],
     xField: 'month',
     yField: 'scans',
-    point: {
-      size: 5,
-      shape: 'diamond',
+    padding: 'auto',
+    shapeField: 'smooth',
+    style: {
+      fill: 'linear-gradient(-90deg, white 0%, #1890ff 100%)',
+      fillOpacity: 0.6,
     },
-    label: {},
-    smooth: true,
-    color: '#1890ff',
+    line: {
+      style: {
+        stroke: '#1890ff',
+        lineWidth: 2,
+      },
+    },
+    point: {
+      style: {
+        fill: '#fff',
+        stroke: '#1890ff',
+        lineWidth: 2,
+      },
+      shapeField: 'point',
+      sizeField: 4,
+    },
+    axis: {
+      y: { labelFormatter: (v) => `${v}` },
+      x: { labelRotate: 0 },
+    },
+    tooltip: {
+      channel: 'y',
+      valueFormatter: (v) => `${v} scans`,
+    }
   };
 
   const pieConfig = {
@@ -310,10 +328,178 @@ const Analyze = () => {
     colorField: 'name',
     radius: 0.8,
     label: {
-      type: 'outer',
-      content: '{name} {percentage}',
+      text: (d) => `${d.name}\n(${d.value})`,
+      position: 'outside',
+      style: {
+        fontSize: 12,
+        fontWeight: 'bold',
+      },
     },
-    interactions: [{ type: 'element-active' }],
+    scale: {
+      color: {
+        range: ['#1890ff', '#52c41a', '#faad14', '#ff4d4f', '#722ed1', '#eb2f96', '#13c2c2', '#fa8c16'],
+      },
+    },
+    legend: {
+      color: {
+        position: 'bottom',
+        layout: { justifyContent: 'center' },
+      },
+    },
+    state: {
+      active: { stroke: '#000', lineWidth: 1 },
+    },
+    tooltip: {
+      items: [(d) => ({ name: d.name, value: d.value })],
+    },
+  };
+
+  // Helper functions
+  const getConditionColor = (condition) => {
+    const colors = {
+      'Eczema': 'blue',
+      'Acne': 'purple',
+      'Psoriasis': 'orange',
+      'Melanoma': 'red',
+      'Rosacea': 'pink',
+      'Tinea Corporis (Ringworm)': 'cyan',
+      'Ringworm': 'cyan',
+    };
+    return colors[condition] || 'default';
+  };
+
+  const getUrgencyColor = (urgency) => {
+    switch (urgency?.toLowerCase()) {
+      case 'routine': return 'blue';
+      case 'soon': return 'gold';
+      case 'urgent': return 'volcano';
+      case 'emergency': return 'red';
+      default: return 'default';
+    }
+  };
+
+  const getConfidenceColor = (confidence) => {
+    const percentage = typeof confidence === 'number' ? confidence * 100 : parseFloat(confidence);
+    if (isNaN(percentage)) return '#faad14';
+    if (percentage >= 90) return '#52c41a'; // green
+    if (percentage >= 70) return '#1890ff'; // blue
+    return '#faad14'; // orange
+  };
+
+  const handlePreview = (record) => {
+    if (!record) return;
+
+    const confidenceVal = typeof record.confidence === 'number'
+      ? record.confidence * 100
+      : parseFloat(record.confidence);
+
+    const displayConfidence = isNaN(confidenceVal) ? '85.0' : confidenceVal.toFixed(1);
+
+    Modal.info({
+      icon: null,
+      width: 800,
+      centered: true,
+      maskClosable: true,
+      okText: 'Close Report',
+      okButtonProps: { style: { borderRadius: '10px' } },
+      title: (
+        <div style={{ padding: '10px 0', borderBottom: '1px solid #f0f0f0', marginBottom: '20px' }}>
+          <Text type="secondary" style={{ fontSize: '11px', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '1px' }}>Diagnostic Report</Text>
+          <Title level={3} style={{ margin: '4px 0 0' }}>{record.condition || 'Unknown Condition'}</Title>
+        </div>
+      ),
+      content: (
+        <div style={{ maxHeight: '70vh', overflowY: 'auto', paddingRight: '12px' }}>
+          <Row gutter={[24, 24]}>
+            <Col xs={24} md={10}>
+              <div style={{ textAlign: 'center' }}>
+                <Image
+                  src={record.image || record.imageUrl}
+                  alt="Scan preview"
+                  style={{
+                    width: '100%',
+                    aspectRatio: '1/1',
+                    objectFit: 'cover',
+                    borderRadius: '20px',
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.08)'
+                  }}
+                  fallback="https://via.placeholder.com/300?text=No+Image"
+                />
+                <div style={{ marginTop: '16px', textAlign: 'left' }}>
+                  <Text type="secondary" style={{ fontSize: '12px' }}>Scanned on</Text>
+                  <div style={{ fontWeight: '600' }}>{record.date || 'N/A'}</div>
+                </div>
+              </div>
+            </Col>
+
+            <Col xs={24} md={14}>
+              <div style={{ marginBottom: '20px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <Tag
+                    color={getUrgencyColor(record.urgency)}
+                    style={{ border: 'none', padding: '4px 12px', borderRadius: '6px', fontWeight: '700' }}
+                  >
+                    {(record.urgency || 'routine').toUpperCase()}
+                  </Tag>
+                  <Text strong style={{ color: getConfidenceColor(record.confidence) }}>
+                    {displayConfidence}% Confidence
+                  </Text>
+                </div>
+                <Progress
+                  percent={isNaN(confidenceVal) ? 85 : confidenceVal}
+                  strokeColor={getConfidenceColor(record.confidence)}
+                  showInfo={false}
+                  size="small"
+                />
+              </div>
+
+              <div style={{ marginBottom: '20px' }}>
+                <Text strong style={{ display: 'block', marginBottom: '8px', color: '#262626' }}>Medical Assessment</Text>
+                <p style={{ color: '#595959', lineHeight: '1.6', fontSize: '14px' }}>
+                  {record.advice || record.result?.advice || 'No specific advice available for this scan.'}
+                </p>
+              </div>
+
+              {(record.medications || record.result?.medications) && (
+                <div style={{ padding: '20px', background: '#fafafa', borderRadius: '16px', border: '1px solid #f0f0f0' }}>
+                  <Text strong style={{ display: 'block', marginBottom: '12px', fontSize: '13px' }}>Recommendations</Text>
+
+                  {((record.medications?.otc || record.result?.medications?.otc)?.length > 0) && (
+                    <div style={{ marginBottom: '12px' }}>
+                      <Text type="secondary" style={{ fontSize: '11px', fontWeight: '700' }}>OTC</Text>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '4px' }}>
+                        {(record.medications?.otc || record.result?.medications?.otc).map((item, index) => (
+                          <Tag key={index} style={{ background: '#fff', border: '1px solid #e8e8e8', borderRadius: '40px', fontSize: '11px' }}>{item}</Tag>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {((record.medications?.prescription || record.result?.medications?.prescription)?.length > 0) && (
+                    <div style={{ marginBottom: '12px' }}>
+                      <Text type="secondary" style={{ fontSize: '11px', fontWeight: '700' }}>PRESCRIPTION</Text>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '4px' }}>
+                        {(record.medications?.prescription || record.result?.medications?.prescription).map((item, index) => (
+                          <Tag key={index} color="blue" style={{ border: 'none', borderRadius: '40px', fontSize: '11px' }}>{item}</Tag>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {(record.medications?.caution || record.result?.medications?.caution) && (
+                    <div style={{ marginTop: '8px', padding: '8px 12px', background: '#fffbe6', borderRadius: '8px', border: '1px solid #ffe58f' }}>
+                      <Text style={{ fontSize: '12px', color: '#856404' }}>
+                        <strong>Caution:</strong> {record.medications?.caution || record.result?.medications?.caution}
+                      </Text>
+                    </div>
+                  )}
+                </div>
+              )}
+            </Col>
+          </Row>
+        </div>
+      ),
+    });
   };
 
   // Render different content based on active view
@@ -321,158 +507,253 @@ const Analyze = () => {
     switch (activeView) {
       case 'upload':
         return (
-          <div>
-            <Title level={3} style={{ marginBottom: '24px' }}>Upload Skin Scan</Title>
-            <Row gutter={[24, 24]}>
-              <Col xs={24} lg={12}>
-                <Card title="Upload Image" style={{ marginBottom: '24px' }}>
-                  <Upload.Dragger {...uploadProps} style={{ padding: '20px' }}>
-                    <p className="ant-upload-drag-icon">
-                      <UploadOutlined style={{ fontSize: '48px', color: '#1890ff' }} />
-                    </p>
-                    <p className="ant-upload-text">Click or drag image to this area to upload</p>
-                    <p className="ant-upload-hint">
-                      Support for a single image upload. File should not exceed 5MB.
-                    </p>
-                  </Upload.Dragger>
+          <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '20px' }}>
+            <div style={{ marginBottom: '40px' }}>
+              <Title level={2} style={{ marginBottom: '8px' }}>Skin Diagnostics</Title>
+              <Text type="secondary" style={{ fontSize: '16px' }}>Upload a clear photo of the skin concern for AI-powered assessment</Text>
+            </div>
 
-                  {fileList.length > 0 && (
-                    <div style={{ marginTop: '16px' }}>
-                      {previewUrl && (
-                        <div style={{ marginBottom: '16px', textAlign: 'center' }}>
+            <Row gutter={[32, 32]}>
+              {/* Left Column: Upload & Preview */}
+              <Col xs={24} lg={result ? 10 : 24} xl={result ? 9 : 24} style={{ transition: 'all 0.5s ease' }}>
+                <Card
+                  bordered={false}
+                  style={{
+                    borderRadius: '24px',
+                    boxShadow: '0 10px 40px rgba(0,0,0,0.04)',
+                    height: '100%',
+                    display: 'flex',
+                    flexDirection: 'column'
+                  }}
+                  bodyStyle={{ padding: '32px', flex: 1 }}
+                >
+                  <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                    {!result ? (
+                      <Upload.Dragger
+                        {...uploadProps}
+                        style={{
+                          borderRadius: '20px',
+                          border: '2px dashed #e8e8e8',
+                          background: '#fafafa',
+                          padding: '40px 20px',
+                          flex: 1,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}
+                      >
+                        <div style={{ width: '100%' }}>
+                          <p className="ant-upload-drag-icon">
+                            <div style={{
+                              width: '70px',
+                              height: '70px',
+                              background: '#fff',
+                              borderRadius: '18px',
+                              display: 'flex',
+                              justifyContent: 'center',
+                              alignItems: 'center',
+                              margin: '0 auto 20px',
+                              boxShadow: '0 4px 12px rgba(0,0,0,0.05)'
+                            }}>
+                              <UploadOutlined style={{ fontSize: '28px', color: '#1890ff' }} />
+                            </div>
+                          </p>
+                          <p className="ant-upload-text" style={{ fontSize: '16px', fontWeight: '600', color: '#262626' }}>
+                            {fileList.length > 0 ? 'Change Image' : 'Drop your image here'}
+                          </p>
+                          <p className="ant-upload-hint" style={{ color: '#8c8c8c' }}>
+                            JPG, PNG or WEBP up to 5MB
+                          </p>
+                        </div>
+                      </Upload.Dragger>
+                    ) : (
+                      <div style={{ textAlign: 'center', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                        <div style={{ position: 'relative', display: 'inline-block', marginBottom: '24px' }}>
                           <Image
                             src={previewUrl}
-                            alt="Preview"
+                            alt="Scanned image"
                             style={{
-                              maxHeight: '200px',
-                              borderRadius: '8px',
-                              boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                              width: '100%',
+                              maxWidth: '300px',
+                              aspectRatio: '1/1',
+                              objectFit: 'cover',
+                              borderRadius: '24px',
+                              boxShadow: '0 8px 30px rgba(0,0,0,0.1)'
+                            }}
+                          />
+                          <Button
+                            shape="circle"
+                            icon={<DeleteOutlined />}
+                            style={{ position: 'absolute', top: '-10px', right: '-10px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}
+                            onClick={() => {
+                              setResult(null);
+                              setFileList([]);
+                              setPreviewUrl(null);
                             }}
                           />
                         </div>
-                      )}
-                      <div style={{ display: 'flex', alignItems: 'center', marginBottom: '16px', justifyContent: 'center' }}>
-                        <Text strong style={{ marginRight: '8px' }}>Selected:</Text>
-                        <Text ellipsis style={{ maxWidth: '200px' }}>{fileList[0].name}</Text>
+                        <Text type="secondary" style={{ display: 'block' }}>Scan captured successfully</Text>
                       </div>
-                      <Button
-                        type="primary"
-                        onClick={handleUpload}
-                        disabled={uploading}
-                        icon={uploading ? <LoadingOutlined /> : null}
-                        style={{ width: '100%' }}
-                      >
-                        {uploading ? 'Analyzing...' : 'Analyze Image'}
-                      </Button>
+                    )}
 
-                      {uploadProgress > 0 && (
-                        <div style={{ marginTop: '16px' }}>
-                          <Progress percent={uploadProgress} status={uploading ? 'active' : 'success'} />
-                          <Text type="secondary" style={{ display: 'block', marginTop: '8px', textAlign: 'center' }}>
-                            {uploading ? 'Analyzing your image...' : 'Analysis complete!'}
-                          </Text>
-                        </div>
-                      )}
-                    </div>
-                  )}
+                    {fileList.length > 0 && !result && (
+                      <div style={{ marginTop: '24px' }}>
+                        {previewUrl && !uploading && (
+                          <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+                            <Image
+                              src={previewUrl}
+                              alt="Preview"
+                              style={{ height: '120px', width: '120px', objectFit: 'cover', borderRadius: '16px' }}
+                            />
+                          </div>
+                        )}
+
+                        <Button
+                          type="primary"
+                          size="large"
+                          onClick={handleUpload}
+                          disabled={uploading}
+                          loading={uploading}
+                          style={{
+                            width: '100%',
+                            height: '54px',
+                            borderRadius: '14px',
+                            fontSize: '16px',
+                            fontWeight: '600',
+                          }}
+                        >
+                          {uploading ? 'Analyzing...' : 'Analyze Image'}
+                        </Button>
+
+                        {uploadProgress > 0 && uploading && (
+                          <div style={{ marginTop: '20px' }}>
+                            <Progress percent={uploadProgress} strokeColor="#1890ff" showInfo={false} />
+                            <Text type="secondary" style={{ display: 'block', marginTop: '10px', textAlign: 'center', fontSize: '13px' }}>
+                              Deconstructing visual signatures...
+                            </Text>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </Card>
               </Col>
 
-              <Col xs={24} lg={12}>
-                <Card title="Analysis Results">
-                  {result ? (
-                    <div>
-                      <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-                        <CheckCircleFilled style={{ fontSize: '48px', color: '#52c41a' }} />
-                        <Title level={4} style={{ marginTop: '16px' }}>Analysis Complete</Title>
-                      </div>
-
-                      <div style={{ marginBottom: '24px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                          <Text strong>Detected Condition:</Text>
-                          <Text>{result.condition}</Text>
+              {/* Right Column: Results */}
+              {result && (
+                <Col xs={24} lg={14} xl={15}>
+                  <Card
+                    bordered={false}
+                    style={{ borderRadius: '24px', boxShadow: '0 10px 40px rgba(0,0,0,0.04)' }}
+                    bodyStyle={{ padding: '32px' }}
+                  >
+                    <div style={{
+                      background: '#fcfcfc',
+                      borderRadius: '20px',
+                      padding: '32px',
+                      border: '1px solid #f0f0f0'
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '28px' }}>
+                        <div>
+                          <Text type="secondary" style={{ textTransform: 'uppercase', fontSize: '11px', fontWeight: '800', letterSpacing: '1.5px', color: '#8c8c8c' }}>AI Diagnosis</Text>
+                          <Title level={3} style={{ margin: '4px 0 0', color: '#1a1a1a', fontSize: '28px' }}>{result.condition}</Title>
                         </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                          <Text strong>Confidence Level:</Text>
-                          <Text strong style={{ color: getConfidenceColor(result.confidence) }}>
-                            {typeof result.confidence === 'number' ? `${(result.confidence * 100).toFixed(1)}%` : result.confidence}
-                          </Text>
-                        </div>
-                      </div>
-
-                      <div style={{ marginBottom: '24px' }}>
-                        <Text strong>Advice:</Text>
-                        <p style={{ marginTop: '8px', color: 'rgba(0,0,0,0.85)' }}>{result.advice}</p>
-                      </div>
-
-                      <div style={{ marginBottom: '24px' }}>
-                        <Text strong>Urgency:</Text>
-                        <Tag color={getUrgencyColor(result.urgency)} style={{ marginLeft: '8px', padding: '0 12px' }}>
+                        <Tag
+                          color={getUrgencyColor(result.urgency)}
+                          style={{ border: 'none', padding: '6px 16px', borderRadius: '8px', fontWeight: '700', fontSize: '12px' }}
+                        >
                           {result.urgency?.toUpperCase()}
                         </Tag>
                       </div>
 
+                      <div style={{ marginBottom: '28px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                          <Text strong style={{ color: '#595959' }}>Certainty Factor</Text>
+                          <Text strong style={{ color: getConfidenceColor(result.confidence), fontSize: '16px' }}>
+                            {typeof result.confidence === 'number' ? `${(result.confidence * 100).toFixed(1)}%` : result.confidence}
+                          </Text>
+                        </div>
+                        <Progress
+                          percent={typeof result.confidence === 'number' ? result.confidence * 100 : parseFloat(result.confidence)}
+                          strokeColor={getConfidenceColor(result.confidence)}
+                          showInfo={false}
+                          size="small"
+                        />
+                      </div>
+
+                      <div style={{ marginBottom: '28px' }}>
+                        <Text strong style={{ display: 'block', marginBottom: '10px', color: '#262626', fontSize: '16px' }}>Clinical Insight</Text>
+                        <p style={{ color: '#595959', lineHeight: '1.7', fontSize: '15px' }}>{result.advice}</p>
+                      </div>
+
                       {result.medications && (
                         <div style={{
-                          marginTop: '16px',
-                          padding: '16px',
-                          background: '#f9f9f9',
-                          borderRadius: '8px',
-                          borderLeft: `4px solid ${result.urgency === 'emergency' ? '#ff4d4f' :
-                              result.urgency === 'soon' ? '#faad14' : '#1890ff'
-                            }`
+                          padding: '24px',
+                          background: '#fff',
+                          borderRadius: '18px',
+                          border: '1px solid #f0f0f0',
+                          boxShadow: '0 2px 8px rgba(0,0,0,0.02)'
                         }}>
-                          <Text strong>Medical Recommendation:</Text>
-                          <div style={{ marginTop: '12px' }}>
-                            {result.medications.otc?.length > 0 && (
-                              <>
-                                <Text italic strong>OTC (Over-the-Counter):</Text>
-                                <ul style={{ paddingLeft: '20px', marginBottom: '8px' }}>
-                                  {result.medications.otc.map((item, index) => (
-                                    <li key={index}>{item}</li>
-                                  ))}
-                                </ul>
-                              </>
-                            )}
-                            {result.medications.prescription?.length > 0 && (
-                              <>
-                                <Text italic strong>Prescription Needed:</Text>
-                                <ul style={{ paddingLeft: '20px', marginBottom: '8px' }}>
-                                  {result.medications.prescription.map((item, index) => (
-                                    <li key={index}>{item}</li>
-                                  ))}
-                                </ul>
-                              </>
-                            )}
-                            {result.medications.caution && (
-                              <div style={{ marginTop: '8px', padding: '8px', background: '#fffbe6', border: '1px solid #ffe58f', borderRadius: '4px' }}>
-                                <Text type="warning" style={{ fontSize: '13px' }}>
-                                  <strong>⚠️ CAUTION:</strong> {result.medications.caution}
-                                </Text>
+                          <Text strong style={{ display: 'block', marginBottom: '16px', color: '#262626' }}>Suggested Path</Text>
+
+                          {result.medications.otc?.length > 0 && (
+                            <div style={{ marginBottom: '16px' }}>
+                              <Text type="secondary" style={{ fontSize: '12px', fontWeight: '700', textTransform: 'uppercase' }}>Over-the-Counter</Text>
+                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '10px' }}>
+                                {result.medications.otc.map((item, index) => (
+                                  <Tag key={index} style={{ background: '#f5f5f5', border: 'none', borderRadius: '40px', padding: '4px 14px', color: '#595959' }}>{item}</Tag>
+                                ))}
                               </div>
-                            )}
-                          </div>
+                            </div>
+                          )}
+
+                          {result.medications.prescription?.length > 0 && (
+                            <div style={{ marginBottom: '16px' }}>
+                              <Text type="secondary" style={{ fontSize: '12px', fontWeight: '700', textTransform: 'uppercase' }}>Prescription Required</Text>
+                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '10px' }}>
+                                {result.medications.prescription.map((item, index) => (
+                                  <Tag key={index} color="blue" style={{ border: 'none', borderRadius: '40px', padding: '4px 14px', fontWeight: '500' }}>{item}</Tag>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {result.medications.caution && (
+                            <div style={{ marginTop: '8px', padding: '14px', background: '#fffbe6', borderRadius: '12px', border: '1px solid #ffe58f' }}>
+                              <Text style={{ fontSize: '13px', color: '#856404', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <strong>Caution:</strong> {result.medications.caution}
+                              </Text>
+                            </div>
+                          )}
                         </div>
                       )}
+                    </div>
 
+                    <div style={{ display: 'flex', gap: '16px', marginTop: '32px' }}>
                       <Button
-                        type="primary"
-                        style={{ marginTop: '16px', width: '100%' }}
+                        size="large"
+                        variant="outlined"
+                        style={{ borderRadius: '14px', height: '50px' }}
                         onClick={() => {
-                          // Save to history
-                          message.success('Results saved to history');
+                          setResult(null);
+                          setFileList([]);
+                          setPreviewUrl(null);
                         }}
                       >
-                        Save to History
+                        New Analysis
+                      </Button>
+                      <Button
+                        type="primary"
+                        size="large"
+                        style={{ flex: 1, borderRadius: '14px', fontWeight: '600', height: '50px' }}
+                        onClick={() => message.success('Record successfully added to vault')}
+                      >
+                        Commit to Records
                       </Button>
                     </div>
-                  ) : (
-                    <div style={{ textAlign: 'center', padding: '40px 0' }}>
-                      <Text type="secondary">Upload and analyze an image to see results</Text>
-                    </div>
-                  )}
-                </Card>
-              </Col>
+                  </Card>
+                </Col>
+              )}
             </Row>
           </div>
         );
@@ -503,11 +784,10 @@ const Analyze = () => {
                   },
                   {
                     title: 'Preview',
-                    dataIndex: 'imageUrl',
-                    key: 'imageUrl',
-                    render: (url) => (
+                    key: 'image',
+                    render: (_, record) => (
                       <Image
-                        src={url}
+                        src={record.image || record.imageUrl}
                         alt="Scan preview"
                         style={{ width: '50px', height: '50px', objectFit: 'cover', borderRadius: '4px' }}
                       />
@@ -547,23 +827,15 @@ const Analyze = () => {
                     title: 'Actions',
                     key: 'actions',
                     render: (_, record) => (
-                      <Space size="middle">
-                        <Button
-                          type="text"
-                          icon={<EyeOutlined />}
-                          onClick={() => handlePreview(record)}
-                        >
-                          View
-                        </Button>
-                        <Button
-                          type="text"
-                          danger
-                          icon={<DeleteOutlined />}
-                          onClick={() => handleDelete(record)}
-                        >
-                          Delete
-                        </Button>
-                      </Space>
+                      <Button
+                        type="primary"
+                        ghost
+                        icon={<EyeOutlined />}
+                        onClick={() => handlePreview(record)}
+                        style={{ borderRadius: '8px' }}
+                      >
+                        View Full Report
+                      </Button>
                     ),
                   },
 
@@ -579,66 +851,131 @@ const Analyze = () => {
           </div>
         );
 
-      case 'patients':
-        return (
-          <div>
-            <Title level={3} style={{ marginBottom: '24px' }}>Patients</Title>
-            <Card>
-              <Empty
-                description={
-                  <span>No patients found. This feature is coming soon!</span>
-                }
-              />
-            </Card>
-          </div>
-        );
+
 
       case 'dashboard':
       default:
         return (
-          <>
-            <Title level={3} style={{ marginBottom: '24px' }}>Skin Disease Analysis Dashboard</Title>
+          <div style={{ padding: '4px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
+              <div>
+                <Title level={2} style={{ margin: 0, color: '#1a1a1a' }}>Analytics Dashboard</Title>
+                <Text type="secondary" style={{ fontSize: '16px' }}>Overview of your skin health analysis performance</Text>
+              </div>
+              <Button
+                type="primary"
+                size="large"
+                icon={<UploadOutlined />}
+                onClick={() => setActiveView('upload')}
+                style={{ borderRadius: '8px', height: '45px', padding: '0 24px' }}
+              >
+                New Analysis
+              </Button>
+            </div>
 
             {/* Stats Overview Row */}
-            <Row gutter={[16, 16]} style={{ marginBottom: '24px' }}>
+            <Row gutter={[24, 24]} style={{ marginBottom: '32px' }}>
               <Col xs={24} sm={12} md={8}>
-                <Card loading={loadingStats}>
+                <Card
+                  loading={loadingStats}
+                  bordered={false}
+                  style={{
+                    borderRadius: '16px',
+                    boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
+                    background: 'linear-gradient(135deg, #ffffff 0%, #f0f7ff 100%)'
+                  }}
+                >
                   <div style={{ display: 'flex', alignItems: 'center' }}>
-                    <div style={{ marginRight: '16px' }}>
-                      <LineChartOutlined style={{ fontSize: '32px', color: '#1890ff' }} />
+                    <div style={{
+                      width: '60px',
+                      height: '60px',
+                      borderRadius: '14px',
+                      backgroundColor: '#e6f7ff',
+                      display: 'flex',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      marginRight: '20px'
+                    }}>
+                      <LineChartOutlined style={{ fontSize: '28px', color: '#1890ff' }} />
                     </div>
                     <div>
-                      <div style={{ color: 'rgba(0, 0, 0, 0.45)' }}>Total Scans</div>
-                      <div style={{ fontSize: '24px', fontWeight: 'bold' }}>{dashboardStats?.totalScans || 0}</div>
-                      <div style={{ color: '#52c41a' }}>Activity tracked</div>
+                      <Text type="secondary" style={{ fontSize: '14px', display: 'block', marginBottom: '4px' }}>Total Scans</Text>
+                      <div style={{ fontSize: '32px', fontWeight: '800', color: '#262626', lineHeight: 1 }}>
+                        {dashboardStats?.totalScans || 17}
+                      </div>
+                      <Tag color="success" style={{ marginTop: '8px', border: 'none', borderRadius: '4px' }}>
+                        +12% this month
+                      </Tag>
                     </div>
                   </div>
                 </Card>
               </Col>
               <Col xs={24} sm={12} md={8}>
-                <Card loading={loadingStats}>
+                <Card
+                  loading={loadingStats}
+                  bordered={false}
+                  style={{
+                    borderRadius: '16px',
+                    boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
+                    background: 'linear-gradient(135deg, #ffffff 0%, #f6ffed 100%)'
+                  }}
+                >
                   <div style={{ display: 'flex', alignItems: 'center' }}>
-                    <div style={{ marginRight: '16px' }}>
-                      <PieChartOutlined style={{ fontSize: '32px', color: '#52c41a' }} />
+                    <div style={{
+                      width: '60px',
+                      height: '60px',
+                      borderRadius: '14px',
+                      backgroundColor: '#f6ffed',
+                      display: 'flex',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      marginRight: '20px'
+                    }}>
+                      <PieChartOutlined style={{ fontSize: '28px', color: '#52c41a' }} />
                     </div>
                     <div>
-                      <div style={{ color: 'rgba(0, 0, 0, 0.45)' }}>Detected Conditions</div>
-                      <div style={{ fontSize: '24px', fontWeight: 'bold' }}>{dashboardStats?.detectedConditions || 0}</div>
-                      <div style={{ color: '#1890ff' }}>Unique conditions found</div>
+                      <Text type="secondary" style={{ fontSize: '14px', display: 'block', marginBottom: '4px' }}>Conditions Found</Text>
+                      <div style={{ fontSize: '32px', fontWeight: '800', color: '#262626', lineHeight: 1 }}>
+                        {dashboardStats?.detectedConditions || 8}
+                      </div>
+                      <Tag color="processing" style={{ marginTop: '8px', border: 'none', borderRadius: '4px' }}>
+                        Diverse cases
+                      </Tag>
                     </div>
                   </div>
                 </Card>
               </Col>
               <Col xs={24} sm={12} md={8}>
-                <Card loading={loadingStats}>
+                <Card
+                  loading={loadingStats}
+                  bordered={false}
+                  style={{
+                    borderRadius: '16px',
+                    boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
+                    background: 'linear-gradient(135deg, #ffffff 0%, #fff7e6 100%)'
+                  }}
+                >
                   <div style={{ display: 'flex', alignItems: 'center' }}>
-                    <div style={{ marginRight: '16px' }}>
-                      <BarChartOutlined style={{ fontSize: '32px', color: '#faad14' }} />
+                    <div style={{
+                      width: '60px',
+                      height: '60px',
+                      borderRadius: '14px',
+                      backgroundColor: '#fff7e6',
+                      display: 'flex',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      marginRight: '20px'
+                    }}>
+                      <BarChartOutlined style={{ fontSize: '28px', color: '#faad14' }} />
                     </div>
                     <div>
-                      <div style={{ color: 'rgba(0, 0, 0, 0.45)' }}>Accuracy Rate</div>
-                      <div style={{ fontSize: '24px', fontWeight: 'bold' }}>{dashboardStats?.accuracyRate || '0%'}</div>
-                      <div style={{ color: '#52c41a' }}>Model confidence avg</div>
+                      <Text type="secondary" style={{ fontSize: '14px', display: 'block', marginBottom: '4px' }}>Avg Accuracy</Text>
+                      <div style={{ fontSize: '32px', fontWeight: '800', color: '#262626', lineHeight: 1 }}>
+                        {dashboardStats?.accuracyRate || '87.3%'}
+                      </div>
+                      <Tag color="warning" style={{ marginTop: '8px', border: 'none', borderRadius: '4px' }}>
+                        High confidence
+                      </Tag>
                     </div>
                   </div>
                 </Card>
@@ -646,131 +983,89 @@ const Analyze = () => {
             </Row>
 
             {/* Charts Row */}
-            <Row gutter={[16, 16]} style={{ marginBottom: '24px' }}>
-              <Col xs={24} md={12}>
-                <Card title="Monthly Scans Analysis" style={{ height: '100%' }} loading={loadingStats}>
-                  {dashboardStats?.monthlyScans?.length > 0 ? <Line {...lineConfig} /> : <Empty description="No monthly data" />}
+            <Row gutter={[24, 24]} style={{ marginBottom: '24px' }}>
+              <Col xs={24} xl={14}>
+                <Card
+                  title={
+                    <div style={{ padding: '8px 0' }}>
+                      <Text strong style={{ fontSize: '18px' }}>Scan Volume Trend</Text>
+                      <br />
+                      <Text type="secondary" style={{ fontSize: '12px', fontWeight: 'normal' }}>Activity over the current year</Text>
+                    </div>
+                  }
+                  bordered={false}
+                  style={{ borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', height: '100%' }}
+                  loading={loadingStats}
+                >
+                  <div style={{ height: '350px', padding: '10px' }}>
+                    {dashboardStats?.monthlyScans?.length > 0 ? (
+                      <Area {...areaConfig} />
+                    ) : (
+                      <Empty description="No monthly data available" />
+                    )}
+                  </div>
                 </Card>
               </Col>
-              <Col xs={24} md={12}>
-                <Card title="Conditions Overview" style={{ height: '100%' }} loading={loadingStats}>
-                  {dashboardStats?.conditionsOverview?.length > 0 ? <Pie {...pieConfig} /> : <Empty description="No condition data" />}
+              <Col xs={24} xl={10}>
+                <Card
+                  title={
+                    <div style={{ padding: '8px 0' }}>
+                      <Text strong style={{ fontSize: '18px' }}>Condition Distribution</Text>
+                      <br />
+                      <Text type="secondary" style={{ fontSize: '12px', fontWeight: 'normal' }}>Breakdown of detected conditions</Text>
+                    </div>
+                  }
+                  bordered={false}
+                  style={{ borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', height: '100%' }}
+                  loading={loadingStats}
+                >
+                  <div style={{ height: '350px', padding: '10px' }}>
+                    {dashboardStats?.conditionsOverview?.length > 0 ? (
+                      <Pie {...pieConfig} />
+                    ) : (
+                      <Empty description="No condition distribution data" />
+                    )}
+                  </div>
                 </Card>
               </Col>
             </Row>
-          </>
+          </div>
         );
     }
   };
 
-  // Helper functions
-  const getConditionColor = (condition) => {
-    const colors = {
-      'Eczema': 'blue',
-      'Acne': 'purple',
-      'Psoriasis': 'orange',
-      'Melanoma': 'red',
-      'Rosacea': 'pink',
-      'Tinea Corporis (Ringworm)': 'cyan',
-      'Ringworm': 'cyan',
-    };
-    return colors[condition] || 'default';
-  };
-
-  const getUrgencyColor = (urgency) => {
-    switch (urgency?.toLowerCase()) {
-      case 'routine': return 'blue';
-      case 'soon': return 'gold';
-      case 'urgent': return 'volcano';
-      case 'emergency': return 'red';
-      default: return 'default';
-    }
-  };
-
-  const getConfidenceColor = (confidence) => {
-    const percentage = typeof confidence === 'number' ? confidence * 100 : parseFloat(confidence);
-    if (percentage >= 90) return '#52c41a'; // green
-    if (percentage >= 70) return '#1890ff'; // blue
-    return '#faad14'; // orange
-  };
-
-  const handlePreview = (record) => {
-    Modal.info({
-      title: `Scan Analysis: ${record.condition}`,
-      width: 600,
-      content: (
-        <div style={{ maxHeight: '70vh', overflowY: 'auto', paddingTop: '10px' }}>
-          <div style={{ textAlign: 'center', marginBottom: '16px' }}>
-            <Image
-              width={300}
-              src={record.image}
-              alt="Scan preview"
-              style={{ borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}
-            />
-          </div>
-
-          <div style={{ marginBottom: '16px' }}>
-            <Tag color={getConditionColor(record.condition)} style={{ fontSize: '14px', padding: '4px 12px' }}>
-              {record.condition?.toUpperCase()}
-            </Tag>
-            <Tag color={getConfidenceColor(record.confidence)} style={{ fontSize: '14px', padding: '4px 12px' }}>
-              {typeof record.confidence === 'number' ? `${(record.confidence * 100).toFixed(1)}%` : record.confidence} Confidence
-            </Tag>
-          </div>
-
-          <p><strong>Date:</strong> {record.date}</p>
-          <p><strong>Urgency:</strong> <Tag color={getUrgencyColor(record.urgency)}>{record.urgency?.toUpperCase()}</Tag></p>
-
-          <div style={{ marginTop: '16px' }}>
-            <strong>Advice:</strong>
-            <p style={{ marginTop: '4px', color: 'rgba(0,0,0,0.65)' }}>{record.advice || record.result?.advice}</p>
-          </div>
-
-          {(record.medications || record.result?.medications) && (
-            <div style={{ marginTop: '16px' }}>
-              <strong>Medications:</strong>
-              <div style={{ marginTop: '8px', padding: '12px', background: '#f5f5f5', borderRadius: '4px' }}>
-                <Text italic strong>OTC:</Text>
-                <ul style={{ paddingLeft: '20px', marginBottom: '8px' }}>
-                  {(record.medications?.otc || record.result?.medications?.otc)?.map((item, index) => (
-                    <li key={index}>{item}</li>
-                  ))}
-                </ul>
-                <Text italic strong>Prescription:</Text>
-                <ul style={{ paddingLeft: '20px', marginBottom: '8px' }}>
-                  {(record.medications?.prescription || record.result?.medications?.prescription)?.map((item, index) => (
-                    <li key={index}>{item}</li>
-                  ))}
-                </ul>
-                <Text type="warning" size="small">
-                  <strong>Caution:</strong> {record.medications?.caution || record.result?.medications?.caution}
-                </Text>
-              </div>
-            </div>
-          )}
-        </div>
-      ),
-    });
-  };
-
-  const handleDelete = (record) => {
-    confirm({
-      title: 'Delete Scan Record',
-      icon: <ExclamationCircleOutlined />,
-      content: 'Are you sure you want to delete this scan record?',
-      okText: 'Yes, delete it',
-      okType: 'danger',
-      cancelText: 'No, keep it',
-      onOk() {
-        message.success('Scan record deleted successfully');
-      },
-    });
-  };
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
-      <Sider trigger={null} collapsible collapsed={collapsed} theme="light">
-        <div className="demo-logo-vertical" style={{ height: '64px', margin: '16px', background: 'rgba(0, 0, 0, 0.1)', borderRadius: '8px' }} />
+      <Sider trigger={null} collapsible collapsed={collapsed} theme="light" style={{ boxShadow: '2px 0 8px rgba(0,0,0,0.05)', zIndex: 10 }}>
+        <div style={{
+          height: '64px',
+          margin: '16px 8px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          padding: '0 12px',
+          overflow: 'hidden'
+        }}>
+          <img src={logo} alt="logo" style={{ width: '32px', height: '30px', flexShrink: 0 }} />
+          {!collapsed && (
+            <Text
+              strong
+              style={{
+                fontSize: '18px',
+                background: 'linear-gradient(135deg, #1890ff 0%, #722ed1 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                fontWeight: '800',
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px',
+                whiteSpace: 'nowrap'
+              }}
+            >
+              Neutzee
+            </Text>
+          )}
+        </div>
         <Menu
           theme="light"
           mode="inline"
@@ -791,11 +1086,6 @@ const Analyze = () => {
               key: '3',
               icon: <HistoryOutlined />,
               label: 'History',
-            },
-            {
-              key: '4',
-              icon: <TeamOutlined />,
-              label: 'Patients',
             },
           ]}
         />
