@@ -823,21 +823,7 @@ const Analyze = () => {
                       </Tag>
                     ),
                   },
-                  {
-                    title: 'Actions',
-                    key: 'actions',
-                    render: (_, record) => (
-                      <Button
-                        type="primary"
-                        ghost
-                        icon={<EyeOutlined />}
-                        onClick={() => handlePreview(record)}
-                        style={{ borderRadius: '8px' }}
-                      >
-                        View Full Report
-                      </Button>
-                    ),
-                  },
+               
 
                 ]}
                 dataSource={historyData}
